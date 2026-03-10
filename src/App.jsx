@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SUPABASE_URL = 'https://hisodgxpyycpmgovxcsx.supabase.co';
-const SUPABASE_KEY = 'TVOJ_KEYsb_publishable_IOUW8LgbWlL7k-f0-dZ3qw_uKQewIrT';
+const SUPABASE_KEY = 'sb_publishable_IOUW8LgbWlL7k-f0-dZ3qw_uKQewIrT';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const DEFAULT_PROSTORIJE = ['dnevni boravak', 'kuhinja', 'spavaća soba', 'garaža', 'podrum'];
