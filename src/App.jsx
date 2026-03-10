@@ -48,7 +48,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('liste_k', JSON.stringify(kategorije)); }, [kategorije]);
 
   const fetchItems = async () => {
-    const { data } = await supabase.from('stvari').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('stvari').select('*').order('datum unosa', { ascending: false });
     if (data) setItems(data);
   };
 
