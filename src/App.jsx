@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
   Package, MapPin, Search, LayoutGrid, Camera, Image,
-  Trash2, X, Moon, Sun, Home, Plus, Tag, Check
+  Trash2, X, Moon, Sun, Plus, Tag, ChevronRight, ArrowLeft, Settings, AlignLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,14 +17,13 @@ export default function App() {
   const [items, setItems] = useState([]);
   const [view, setView] = useState('catalog');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedKategorija, setSelectedKategorija] = useState(null);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('Sve');
   const [darkMode, setDarkMode] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [prostorije, setProstorije] = useState(DEFAULT_PROSTORIJE);
   const [kategorije, setKategorije] = useState(DEFAULT_KATEGORIJE);
-
-  // Inline input stanja za settings
   const [newProstorija, setNewProstorija] = useState('');
   const [newKategorija, setNewKategorija] = useState('');
 
@@ -32,6 +31,7 @@ export default function App() {
     naziv: '',
     prostorija: DEFAULT_PROSTORIJE[0],
     kategorija: DEFAULT_KATEGORIJE[0],
+    napomena: '',
     fotoFile: null,
     previewUrl: null
   });
@@ -61,7 +61,7 @@ export default function App() {
 
   const resetForm = () => {
     if (formData.previewUrl) URL.revokeObjectURL(formData.previewUrl);
-    setFormData({ naziv: '', prostorija: prostorije[0] ?? '', kategorija: kategorije[0] ?? '', fotoFile: null, previewUrl: null });
+    setFormData({ naziv: '', prostorija: prostorije[0] ?? '', kategorija: kategorije[0] ?? '', napomena: '', fotoFile: null, previewUrl: null });
   };
 
   const handleAddItem = async (e) => {
@@ -80,6 +80,7 @@ export default function App() {
         naziv: formData.naziv,
         prostorija: formData.prostorija,
         kategorija: formData.kategorija,
+        napomena: formData.napomena,
         foto: publicUrl
       }]);
       if (dbErr) throw dbErr;
@@ -116,14 +117,15 @@ export default function App() {
 
   const filteredItems = items.filter(i =>
     i.naziv.toLowerCase().includes(search.toLowerCase()) &&
-    (activeFilter === 'Sve' || i.prostorija === activeFilter || i.kategorija === activeFilter)
+    (activeFilter === 'Sve' || i.prostorija === activeFilter)
   );
+
+  const itemsByKategorija = (kat) => items.filter(i => i.kategorija === kat);
 
   const dk = darkMode;
 
-  // Reusable inline-add input
   const AddInput = ({ value, onChange, onAdd, placeholder, color = 'blue' }) => (
-    <div className={`flex gap-2 mt-2`}>
+    <div className="flex gap-2 mt-2">
       <input
         className={`flex-1 p-4 rounded-[20px] outline-none text-xs font-bold uppercase tracking-widest ${dk ? 'bg-[#1a1a1a] border border-white/10 text-white' : 'bg-gray-50 border border-gray-200 text-gray-800'}`}
         placeholder={placeholder}
@@ -134,9 +136,9 @@ export default function App() {
       <button
         onClick={onAdd}
         disabled={!value.trim()}
-        className={`p-4 rounded-[20px] transition-all disabled:opacity-20 ${color === 'violet' ? 'bg-violet-600 shadow-lg shadow-violet-600/20' : 'bg-blue-600 shadow-lg shadow-blue-600/20'} text-white`}
+        className={`p-4 rounded-[20px] transition-all disabled:opacity-20 text-white ${color === 'violet' ? 'bg-violet-600 shadow-lg shadow-violet-600/20' : 'bg-blue-600 shadow-lg shadow-blue-600/20'}`}
       >
-        <Check size={18} />
+        <Plus size={18} />
       </button>
     </div>
   );
@@ -147,8 +149,16 @@ export default function App() {
       {/* HEADER */}
       <header className={`sticky top-0 z-40 p-5 flex justify-between items-center border-b backdrop-blur-md ${dk ? 'bg-black/80 border-white/10' : 'bg-white/80 border-gray-100'}`}>
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-xl text-white"><Package size={22} /></div>
-          <h1 className="font-black text-xl uppercase italic tracking-widest">MyBase</h1>
+          {view === 'kategorija-detalj' ? (
+            <button onClick={() => { setView('kategorije'); setSelectedKategorija(null); }} className="p-2">
+              <ArrowLeft size={22} />
+            </button>
+          ) : (
+            <div className="bg-blue-600 p-2 rounded-xl text-white"><Package size={22} /></div>
+          )}
+          <h1 className="font-black text-xl uppercase italic tracking-widest">
+            {view === 'kategorija-detalj' ? selectedKategorija : 'Inventory'}
+          </h1>
         </div>
         <button onClick={() => setDarkMode(!dk)} className="p-2 opacity-70">
           {dk ? <Sun size={24} /> : <Moon size={24} />}
@@ -193,6 +203,59 @@ export default function App() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* KATEGORIJE LISTA */}
+        {view === 'kategorije' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-6">Kategorije</h2>
+            {kategorije.map(kat => {
+              const count = itemsByKategorija(kat).length;
+              return (
+                <motion.div key={kat}
+                  onClick={() => { setSelectedKategorija(kat); setView('kategorija-detalj'); }}
+                  className={`p-5 rounded-[25px] flex justify-between items-center border cursor-pointer active:scale-95 transition-all ${dk ? 'bg-[#121212] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-violet-600/10 rounded-2xl">
+                      <Tag size={18} className="text-violet-400" />
+                    </div>
+                    <div>
+                      <p className="font-black uppercase text-sm tracking-widest">{kat}</p>
+                      <p className="text-[10px] opacity-40 font-bold mt-0.5">{count} {count === 1 ? 'predmet' : 'predmeta'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="opacity-30" />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+
+        {/* KATEGORIJA DETALJ */}
+        {view === 'kategorija-detalj' && selectedKategorija && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+            {itemsByKategorija(selectedKategorija).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 opacity-20">
+                <Package size={48} />
+                <p className="mt-4 font-black uppercase text-xs tracking-widest">Nema predmeta</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {itemsByKategorija(selectedKategorija).map(item => (
+                  <motion.div layout key={item.id} onClick={() => setSelectedItem(item)}
+                    className={`p-2 rounded-[35px] border transition-all active:scale-95 ${dk ? 'bg-[#121212] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+                    <div className="aspect-square rounded-[30px] overflow-hidden bg-gray-900 mb-3 flex items-center justify-center">
+                      {item.foto ? <img src={item.foto} className="w-full h-full object-cover" alt={item.naziv} /> : <Package className="opacity-10" size={48} />}
+                    </div>
+                    <div className="px-3 pb-2 text-center">
+                      <h3 className="font-bold text-xs truncate uppercase tracking-tighter italic">{item.naziv}</h3>
+                      <p className="text-[9px] opacity-40 font-bold uppercase tracking-widest mt-0.5">{item.prostorija}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
         )}
 
         {/* DODAJ PREDMET */}
@@ -247,6 +310,15 @@ export default function App() {
                   >{k}</button>
                 ))}
               </div>
+
+              <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] ml-4 pt-2">Napomena</p>
+              <textarea
+                className={`w-full p-5 rounded-[24px] outline-none font-bold text-sm resize-none ${dk ? 'bg-[#121212]' : 'bg-white border'}`}
+                placeholder="Dodaj napomenu..."
+                rows={3}
+                value={formData.napomena}
+                onChange={e => setFormData({ ...formData, napomena: e.target.value })}
+              />
             </div>
 
             <button disabled={uploading} type="submit"
@@ -264,7 +336,6 @@ export default function App() {
               <button onClick={() => setView('catalog')}><X /></button>
             </div>
 
-            {/* PROSTORIJE */}
             <div>
               <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] ml-2 mb-3">Prostorije</p>
               <div className="grid grid-cols-1 gap-2">
@@ -277,17 +348,10 @@ export default function App() {
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                <AddInput
-                  value={newProstorija}
-                  onChange={setNewProstorija}
-                  onAdd={addProstorija}
-                  placeholder="Nova prostorija..."
-                  color="blue"
-                />
+                <AddInput value={newProstorija} onChange={setNewProstorija} onAdd={addProstorija} placeholder="Nova prostorija..." color="blue" />
               </div>
             </div>
 
-            {/* KATEGORIJE */}
             <div>
               <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] ml-2 mb-3">Kategorije</p>
               <div className="grid grid-cols-1 gap-2">
@@ -303,13 +367,7 @@ export default function App() {
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                <AddInput
-                  value={newKategorija}
-                  onChange={setNewKategorija}
-                  onAdd={addKategorija}
-                  placeholder="Nova kategorija..."
-                  color="violet"
-                />
+                <AddInput value={newKategorija} onChange={setNewKategorija} onAdd={addKategorija} placeholder="Nova kategorija..." color="violet" />
               </div>
             </div>
           </div>
@@ -318,9 +376,10 @@ export default function App() {
 
       {/* NAVIGACIJA */}
       <nav className={`fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm border shadow-2xl rounded-full p-2 flex justify-around items-center z-50 ${dk ? 'bg-[#121212]/90 border-white/10 backdrop-blur-2xl' : 'bg-white/95 border-gray-100 backdrop-blur-2xl'}`}>
-        <button onClick={() => setView('catalog')} className={`p-4 rounded-full ${view === 'catalog' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'}`}><LayoutGrid size={24} /></button>
-        <button onClick={() => setView('settings')} className={`p-4 rounded-full ${view === 'settings' ? 'bg-blue-600 text-white' : 'text-gray-500'}`}><Home size={24} /></button>
-        <button onClick={() => setView('add')} className={`p-4 rounded-full ${view === 'add' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-500'}`}><Plus size={24} /></button>
+        <button onClick={() => setView('catalog')} className={`p-4 rounded-full transition-all ${view === 'catalog' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'}`}><LayoutGrid size={24} /></button>
+        <button onClick={() => setView('kategorije')} className={`p-4 rounded-full transition-all ${view === 'kategorije' || view === 'kategorija-detalj' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30' : 'text-gray-500'}`}><Tag size={24} /></button>
+        <button onClick={() => setView('settings')} className={`p-4 rounded-full transition-all ${view === 'settings' ? 'bg-blue-600 text-white' : 'text-gray-500'}`}><Settings size={24} /></button>
+        <button onClick={() => setView('add')} className={`p-4 rounded-full transition-all ${view === 'add' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-gray-500'}`}><Plus size={24} /></button>
       </nav>
 
       {/* MODAL DETALJA */}
@@ -335,10 +394,35 @@ export default function App() {
               </div>
               <div className="p-10 space-y-4">
                 <h2 className="text-4xl font-black tracking-tighter uppercase italic leading-none">{selectedItem.naziv}</h2>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 font-black uppercase text-[10px] tracking-widest opacity-40"><MapPin size={12} /> {selectedItem.prostorija}</div>
-                  {selectedItem.kategorija && <div className="flex items-center gap-2 font-black uppercase text-[10px] tracking-widest text-violet-400"><Tag size={12} /> {selectedItem.kategorija}</div>}
+
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest opacity-60">
+                    <MapPin size={14} /> {selectedItem.prostorija}
+                  </div>
+                  {selectedItem.kategorija && (
+                    <div className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-violet-400">
+                      <Tag size={14} /> {selectedItem.kategorija}
+                    </div>
+                  )}
                 </div>
+
+                {selectedItem['datum unosa'] && (
+                  <div className="flex items-center gap-2 text-xs opacity-30 font-bold uppercase tracking-widest">
+                    <span>Uneseno:</span>
+                    <span>{new Date(selectedItem['datum unosa']).toLocaleDateString('hr-HR')}</span>
+                  </div>
+                )}
+
+                {selectedItem.napomena && (
+                  <div className={`p-4 rounded-[20px] ${dk ? 'bg-white/5' : 'bg-gray-50'}`}>
+                    <div className="flex items-center gap-2 mb-2 opacity-40">
+                      <AlignLeft size={12} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Napomena</span>
+                    </div>
+                    <p className="text-sm font-medium opacity-80">{selectedItem.napomena}</p>
+                  </div>
+                )}
+
                 <div className="flex gap-4 pt-4">
                   <button onClick={() => handleDeleteItem(selectedItem)} className="p-6 bg-red-500/10 text-red-500 rounded-[30px] hover:bg-red-500/20 transition-colors"><Trash2 size={24} /></button>
                   <button onClick={() => setSelectedItem(null)} className="flex-grow bg-blue-600 text-white py-6 rounded-[30px] font-black uppercase tracking-widest shadow-xl">Zatvori</button>
